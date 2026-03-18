@@ -1,0 +1,9 @@
+veri tabanına yeni bir sütun satı veya tablo eklenecekse veri tabanı direk güncellenmez bu yüzden migration işlemleri ile güncellemelerimizi veri tabanının görmesini sağlarız.
+Bunu sağlamak için sonradan eklediğimiz users tablosunda phone_number adında column ekledik.
+migration işlemi için terminale şu komutu yazıyoruz:
+ alembic revision -m "phone number added"
+Bu komut ile migration dosyası oluşturulur ve bu dosyada yeni eklediğimiz phone_number columnu için gerekli kodlar yazılır.
+oluşan versions klasöründe yeni bir dosya oluşur ve bu dosyada upgrade ve downgrade fonksiyonları bulunur.
+upgrade fonksiyonu veri tabanına yeni eklediğimiz columnu eklerken downgrade fonksiyonu ise bu columnu veri tabanından siler.
+biz ise upgrade fonksiyonuna şu kodu ekliyoruz:
+ op.add_column('users', sa.Column('phone_number', sa.String(length=20), nullable=True))
