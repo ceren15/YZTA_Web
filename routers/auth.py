@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends , HTTPException
+from fastapi import APIRouter, Depends , HTTPException, Request
 from pydantic import BaseModel
 from typing import Annotated
 from sqlalchemy.orm import Session
@@ -10,12 +10,15 @@ from passlib.context import CryptContext
 #şifreleme yapmak için kütüphanedir.
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
+from fastapi.templating import Jinja2Templates
 
 # Routeri ayrı FastAPI de değilde aynı API da gözükmesini istediğimiz için router kullanıyoruz.
 router = APIRouter(
     prefix="/auth",# Bütün endpointlerin başına auth koyuyor.
     tags=["Authentication"],#FastAPI/docs da başlıklara isim verdik.
 )
+
+templates = Jinja2Templates(directory="templates") # templates klasöründeki dosyaları kullanmak için templates değişkenini oluşturduk.
 
 SECRET_KEY = "w6plreohmfzn9a3q0wly25pqm7kn4nbh8rdia4al1ila7dw1swb1jp95posuxif9"
 ALGORITHM = "HS256"
@@ -71,6 +74,20 @@ async def get_current_user(token: Annotated[str, Depends(oath2_bearer)]): # Bu f
         return {'username': username, 'id': user_id, 'role': role}
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+@router.get("/login-page")
+def render_login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@router.get("/register-page")
+def render_register_page(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
+
+
+
+
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_user(db:db_dependency, create_user_request: CreateUserRequest):

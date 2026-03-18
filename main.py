@@ -1,12 +1,20 @@
 from routers.auth import router as auth_router
 from routers.todo import router as todo_router
-
-from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from starlette.responses import RedirectResponse
+from starlette import status
+from fastapi import FastAPI, Request
 from models import Base
 from database import engine
 
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static") # static dosyaları sunmak için kullanılır. Bu sayede static klasöründeki dosyalara erişebiliriz.
+
+@app.get("/")
+def read_root(request: Request):
+    return RedirectResponse(url="/todo/todo-page", status_code=status.HTTP_302_FOUND) # Ana sayfaya erişildiğinde otomatik olarak /docs sayfasına yönlendirme yapar. Bu sayede kullanıcılar API dokümantasyonuna kolayca erişebilirler.
 
 app.include_router(auth_router)
 app.include_router(todo_router)

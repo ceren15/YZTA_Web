@@ -1,16 +1,21 @@
-from fastapi import APIRouter, Depends, Path, HTTPException
+from fastapi import APIRouter, Depends, Path, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from starlette import status
+from starlette.responses import RedirectResponse
+
 from models import Todo
 from database import SessionLocal
 from typing import Annotated
 from routers.auth import get_current_user
+from fastapi.templating import Jinja2Templates
 
 router = APIRouter(
     prefix="/todo",# Bütün endpointlerin başına auth koyuyor.
     tags=["Todo"],#FastAPI/docs da başlıklara isim verdik.
 )
+
+templates = Jinja2Templates(directory="templates") # templates klasöründeki dosyaları kullanmak için templates değişkenini oluşturduk.
 
 class TodoRequest(BaseModel):
     title: str = Field(min_length=3)
@@ -27,6 +32,53 @@ def get_db():
 
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)] # get_current_user fonksiyonundan dönen değeri user_dependency olarak kullanacağız.
+
+def redirect_to_login():
+    redirect_response = RedirectResponse(url="/auth/login-page", status_code=status.HTTP_302_FOUND) # Kullanıcı giriş yapmamışsa login sayfasına yönlendirme yapar.
+    redirect_response.delete_cookie("access_token") # Kullanıcının tokenını siler.
+    return redirect_response
+
+@router.get("/todo-page")
+async def render_todo_page(request: Request, db: db_dependency):
+    try:
+        user = await get_current_user(request.cookies.get(
+            'access_token'))  # Kullanıcının tokenını alarak get_current_user fonksiyonunu çağırıyoruz. Eğer token geçerliyse kullanıcı bilgilerini döndürecektir.
+        if user is None:
+            return redirect_to_login()
+        todos = db.query(Todo).filter(
+            Todo.owner_id == user.get('id')).all()  # Kullanıcının todolarını veritabanından çekiyoruz.
+        return templates.TemplateResponse("todo.html", {"request": request, "todos": todos, "user": user})
+    except:
+        return redirect_to_login()
+
+
+@router.get("/add-todo-page")
+async def render_add_todo_page(request: Request, db: db_dependency):
+    try:
+        user = await get_current_user(request.cookies.get(
+            'access_token'))  # Kullanıcının tokenını alarak get_current_user fonksiyonunu çağırıyoruz. Eğer token geçerliyse kullanıcı bilgilerini döndürecektir.
+        if user is None:
+            return redirect_to_login()
+
+        return templates.TemplateResponse("add-todo.html", {"request": request, "user": user})
+    except:
+        return redirect_to_login()
+
+
+@router.get("/edit-todo-page/{todo_id}")
+async def render_todo_page(request: Request, todo_id: int, db: db_dependency):
+    try:
+        user = await get_current_user(request.cookies.get(
+            'access_token'))  # Kullanıcının tokenını alarak get_current_user fonksiyonunu çağırıyoruz. Eğer token geçerliyse kullanıcı bilgilerini döndürecektir.
+        if user is None:
+            return redirect_to_login()
+
+        todo = db.query(Todo).filter(
+            Todo.id == todo_id).first()  # Kullanıcının todolarını veritabanından çekiyoruz.
+        return templates.TemplateResponse("edit-todo.html", {"request": request, "todo": todo, "user": user})
+    except:
+        return redirect_to_login()
+
 
 
 @router.get("/")
