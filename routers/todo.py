@@ -10,6 +10,18 @@ from typing import Annotated
 from routers.auth import get_current_user
 from fastapi.templating import Jinja2Templates
 
+import os
+import google.generativeai as genai
+from dotenv import load_dotenv
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import HumanMessage, AIMessage
+
+import markdown
+from bs4 import BeautifulSoup
+"""
+https://aistudio.google.com/api-keys?projectFilter=gen-lang-client-0292344120 Bu siteden create api key diyerek yeni proje oluşturdum YZTAWEB adında daha sonrasında verilen apiyi kopyaladım burada kullanmak için.
+"""
+
 router = APIRouter(
     prefix="/todo",# Bütün endpointlerin başına auth koyuyor.
     tags=["Todo"],#FastAPI/docs da başlıklara isim verdik.
@@ -104,7 +116,9 @@ async def read_by_id(user: user_dependency, db: db_dependency, todo_id: int = Pa
 async def create_todo(user:user_dependency, db: db_dependency, todo_request: TodoRequest):
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+
     todo = Todo(**todo_request.dict(), owner_id=user.get('id')) # buradatodooluşturuyoruz.
+    todo.description = create_todo_with_gemini(todo.description) # todonun açıklamasını yapay zeka modeline göndererek daha uzun ve kapsamlı bir açıklama oluşturmasını sağlıyoruz.
     db.add(todo)# add dedikten sonra commit demeliyiz.
     db.commit()
 
@@ -140,3 +154,29 @@ async def delete_todo(user: user_dependency, db: db_dependency, todo_id: int = P
     """
     db.delete(todo)
     db.commit()
+
+
+def markdown_to_text(markdown_string):
+    html = markdown.markdown(markdown_string) # markdown stringini html formatına çeviriyoruz.
+    soup = BeautifulSoup(html, "html.parser") # html stringini BeautifulSoup ile parse ediyoruz.
+    text = soup.get_text() # parse edilen html den sadece text kısmını alıyoruz.
+    return text
+
+
+def create_todo_with_gemini(todo_string: str):
+    # Burada todo_string i alarak yapay zeka modeline gönderip modelin bize todooluşturarak geri dönmesini sağlayacağız. Modelin bize döndüreceği todoyu daha sonra veritabanına kaydedeceğiz.
+    load_dotenv()
+    genai.configure(api_key=os.environ.get("GOOGLE_API_KEY")) # .env dosyasından GOOGLE_API_KEY değerini alarak genai kütüphanesini yapılandırıyoruz.
+    llm = ChatGoogleGenerativeAI(model="gemini-flash-latest") # ChatGoogleGenerativeAI sınıfını kullanarak bir llm (language model) oluşturuyoruz. Model olarak gemini-1.5-pro modelini kullanıyoruz.
+    response = llm.invoke(
+        [
+            HumanMessage(content="I will provide you a todo item to add my to do list. What I want you to do is to create a longer and more comprehensive description of that todo item, my next message will be my todo:"),
+            HumanMessage(content=todo_string),
+        ]
+    )
+    return markdown_to_text(response.content)
+
+if __name__ == "__main__":
+    print(create_todo_with_gemini("Buy milk"))
+
+
