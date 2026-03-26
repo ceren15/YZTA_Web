@@ -1,16 +1,22 @@
-from routers.auth import router as auth_router
-from routers.todo import router as todo_router
+from .routers.auth import router as auth_router
+from .routers.todo import router as todo_router
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import RedirectResponse
 from starlette import status
 from fastapi import FastAPI, Request
-from models import Base
-from database import engine
-
-
+from .models import Base
+from .database import engine
+import os
+"""
+Relative import, bir modülün aynı paket içindeki diğer modüllere erişmesini sağlar. Örneğin, from .routers.auth import router ifadesi, routers klasöründeki auth.py dosyasındaki router değişkenini içe aktarır. Bu sayede auth.py dosyasındaki router değişkenine main.py dosyasında erişebiliriz.
+Bunu kullanmamamızın sebebi main.py dosyasının doğrudan çalıştırılabilir bir dosya olmasıdır. Eğer main.py dosyasını doğrudan çalıştırırsak, Python bu dosyayı __main__ olarak tanımlar ve relative importlar çalışmaz. Bu nedenle, main.py dosyasını çalıştırırken python -m main komutunu kullanarak main modülünü çalıştırmalıyız. Bu şekilde Python, main.py dosyasını bir modül olarak tanır ve relative importlar sorunsuz bir şekilde çalışır.
+"""
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static") # static dosyaları sunmak için kullanılır. Bu sayede static klasöründeki dosyalara erişebiliriz.
+script_dir = os.path.dirname(__file__) # scriptin bulunduğu dizini alır.
+st_abs_file_path = os.path.join(script_dir, "static/") # static klasörünün tam yolunu oluşturur.
+
+app.mount("/static", StaticFiles(directory=st_abs_file_path), name="static") # static dosyaları sunmak için kullanılır. Bu sayede static klasöründeki dosyalara erişebiliriz.
 
 @app.get("/")
 def read_root(request: Request):

@@ -4,8 +4,8 @@ from typing import Annotated
 from sqlalchemy.orm import Session
 from starlette import status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from database import SessionLocal
-from models import User
+from ..database import SessionLocal
+from ..models import User
 from passlib.context import CryptContext
 #şifreleme yapmak için kütüphanedir.
 from jose import JWTError, jwt
@@ -18,7 +18,7 @@ router = APIRouter(
     tags=["Authentication"],#FastAPI/docs da başlıklara isim verdik.
 )
 
-templates = Jinja2Templates(directory="templates") # templates klasöründeki dosyaları kullanmak için templates değişkenini oluşturduk.
+templates = Jinja2Templates(directory="app/templates") # templates klasöründeki dosyaları kullanmak için templates değişkenini oluşturduk.
 
 SECRET_KEY = "w6plreohmfzn9a3q0wly25pqm7kn4nbh8rdia4al1ila7dw1swb1jp95posuxif9"
 ALGORITHM = "HS256"

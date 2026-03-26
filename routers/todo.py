@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 from starlette import status
 from starlette.responses import RedirectResponse
 
-from models import Todo
-from database import SessionLocal
+from ..models import Todo
+from ..database import SessionLocal
 from typing import Annotated
-from routers.auth import get_current_user
+from ..routers.auth import get_current_user
 from fastapi.templating import Jinja2Templates
 
 import os
@@ -27,7 +27,7 @@ router = APIRouter(
     tags=["Todo"],#FastAPI/docs da başlıklara isim verdik.
 )
 
-templates = Jinja2Templates(directory="templates") # templates klasöründeki dosyaları kullanmak için templates değişkenini oluşturduk.
+templates = Jinja2Templates(directory="app/templates") # templates klasöründeki dosyaları kullanmak için templates değişkenini oluşturduk.
 
 class TodoRequest(BaseModel):
     title: str = Field(min_length=3)
